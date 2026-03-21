@@ -1,8 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minecraft Item Comparer</title>
+
+<style>
+body {
+    font-family: Arial;
+    background:#1e1e1e;
+    color:white;
+    margin:0;
+}
+
+.container {
+    max-width:1000px;
+    margin:auto;
+    padding:20px;
+}
+
+h1 {
+    text-align:center;
+}
+
+.input-group {
+    position: relative;
+    display: inline-block;
+    width:48%;
+}
+
+input {
+    padding:10px;
+    margin:5px;
+    width:100%;
+    box-sizing:border-box;
+}
+
+button {
+    padding:10px;
+    background:#4CAF50;
+    color:white;
+    border:none;
+    margin:10px 5px;
+    cursor:pointer;
+}
+
+.autocomplete {
+    position:absolute;
+    background:#2c2c2c;
+    width:100%;
+    max-height:200px;
+    overflow-y:auto;
+    z-index:999;
+    border-radius:6px;
+}
+
+.autocomplete div {
+    padding:8px;
+    cursor:pointer;
+}
+
+.autocomplete div:hover {
+    background:#444;
+}
+
+table {
+    width:100%;
+    margin-top:20px;
+    border-collapse: collapse;
+}
+
+td, th {
+    padding:10px;
+    border-bottom:1px solid #444;
+    text-align:center;
+}
+
+.better {
+    color:#4CAF50;
+    font-weight:bold;
+}
+
+.worse {
+    color:#ff4c4c;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>Minecraft Item Comparer</h1>
+
+    <div class="input-group">
+        <input id="item1" placeholder="Search item 1 (e.g. dirt)">
+        <div id="list1" class="autocomplete"></div>
+    </div>
+
+    <div class="input-group">
+        <input id="item2" placeholder="Search item 2 (e.g. stone)">
+        <div id="list2" class="autocomplete"></div>
+    </div>
+
+    <br>
+    <button onclick="compare()">Compare</button>
+
+    <table id="table"></table>
+</div>
+
 <script>
 let items = [];
 
 // 🔥 Load CSV
-fetch("items.csv") // rename your CSV to this (important)
+fetch("items.csv")
 .then(res => res.text())
 .then(text => {
     const rows = text.split("\n").map(r => r.split(","));
@@ -23,10 +133,10 @@ fetch("items.csv") // rename your CSV to this (important)
             return obj;
         });
 
-    console.log("Loaded:", items.length);
+    console.log("Loaded items:", items.length);
 });
 
-// 🔍 Normalize names (this fixes "minecraft:dirt" → "dirt")
+// 🔧 Clean item names
 function cleanName(name) {
     return name
         .toLowerCase()
@@ -35,23 +145,15 @@ function cleanName(name) {
         .trim();
 }
 
-// 🔍 Get item name field dynamically
+// 🔧 Get item name field
 function getItemName(item) {
     return item["Item Name"] || item["Item"] || "";
 }
 
 // 🔍 Autocomplete
-function setupAutocomplete(inputId) {
+function setupAutocomplete(inputId, listId) {
     const input = document.getElementById(inputId);
-
-    const list = document.createElement("div");
-    list.style.position = "absolute";
-    list.style.background = "#2c2c2c";
-    list.style.width = input.offsetWidth + "px";
-    list.style.maxHeight = "200px";
-    list.style.overflowY = "auto";
-    list.style.zIndex = "999";
-    input.parentNode.appendChild(list);
+    const list = document.getElementById(listId);
 
     input.addEventListener("input", () => {
         const value = cleanName(input.value);
@@ -66,8 +168,6 @@ function setupAutocomplete(inputId) {
         matches.forEach(item => {
             const div = document.createElement("div");
             div.textContent = cleanName(getItemName(item));
-            div.style.padding = "8px";
-            div.style.cursor = "pointer";
 
             div.onclick = () => {
                 input.value = cleanName(getItemName(item));
@@ -76,6 +176,13 @@ function setupAutocomplete(inputId) {
 
             list.appendChild(div);
         });
+    });
+
+    // close dropdown on click outside
+    document.addEventListener("click", (e) => {
+        if (!input.contains(e.target)) {
+            list.innerHTML = "";
+        }
     });
 }
 
@@ -118,6 +225,8 @@ function compare() {
     ]);
 
     keys.forEach(key => {
+        if (!key) return;
+
         let v1 = item1[key] || "N/A";
         let v2 = item2[key] || "N/A";
 
@@ -143,7 +252,10 @@ function compare() {
     });
 }
 
-// 🚀 Init autocomplete
-setupAutocomplete("item1");
-setupAutocomplete("item2");
+// 🚀 Init
+setupAutocomplete("item1", "list1");
+setupAutocomplete("item2", "list2");
 </script>
+
+</body>
+</html>
