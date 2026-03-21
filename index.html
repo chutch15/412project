@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Minecraft Item Comparer</title>
+
+<style>
+body { font-family: Arial; background:#1e1e1e; color:white; }
+.container { max-width:1000px; margin:auto; padding:20px; }
+
+input { padding:10px; margin:5px; width:45%; }
+button { padding:10px; background:#4CAF50; color:white; border:none; }
+
+table { width:100%; margin-top:20px; border-collapse: collapse; }
+td, th { padding:10px; border-bottom:1px solid #444; text-align:center; }
+
+.better { color:#4CAF50; font-weight:bold; }
+.worse { color:#ff4c4c; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>Minecraft Item Comparer</h1>
+
+    <input id="item1" placeholder="Enter item 1">
+    <input id="item2" placeholder="Enter item 2">
+    <button onclick="compare()">Compare</button>
+
+    <table id="table"></table>
+</div>
+
+<script src="data.js"></script>
+
+<script>
+function findItem(name) {
+    return items.find(i =>
+        i.Item.toLowerCase().includes(name.toLowerCase())
+    );
+}
+
+function compare() {
+    const name1 = document.getElementById("item1").value;
+    const name2 = document.getElementById("item2").value;
+
+    const item1 = findItem(name1);
+    const item2 = findItem(name2);
+
+    if (!item1 || !item2) {
+        alert("Item not found");
+        return;
+    }
+
+    const table = document.getElementById("table");
+    table.innerHTML = "";
+
+    table.innerHTML += `
+        <tr>
+            <th>Attribute</th>
+            <th>${item1.Item}</th>
+            <th>${item2.Item}</th>
+        </tr>
+    `;
+
+    const keys = new Set([...Object.keys(item1), ...Object.keys(item2)]);
+
+    keys.forEach(key => {
+        let v1 = item1[key] ?? "N/A";
+        let v2 = item2[key] ?? "N/A";
+
+        let class1 = "", class2 = "";
+
+        if (!isNaN(v1) && !isNaN(v2)) {
+            if (Number(v1) > Number(v2)) {
+                class1 = "better"; class2 = "worse";
+            } else if (Number(v2) > Number(v1)) {
+                class2 = "better"; class1 = "worse";
+            }
+        }
+
+        table.innerHTML += `
+            <tr>
+                <td>${key}</td>
+                <td class="${class1}">${v1}</td>
+                <td class="${class2}">${v2}</td>
+            </tr>
+        `;
+    });
+}
+</script>
+
+</body>
+</html>
