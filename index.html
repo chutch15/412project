@@ -12,9 +12,13 @@ body {
 }
 
 .container {
-    max-width:800px;
+    max-width:900px;
     margin:auto;
     padding:20px;
+}
+
+h1 {
+    text-align:center;
 }
 
 .input-group {
@@ -94,16 +98,29 @@ td, th {
 </div>
 
 <script>
-// ✅ SIMPLE DATASET
+
+// 🔥 DATASET (15 ITEMS, 5 ATTRIBUTES)
 const items = [
-    { name: "dirt", hardness: 0.5, stack: 64 },
-    { name: "stone", hardness: 1.5, stack: 64 },
-    { name: "grass", hardness: 0.6, stack: 64 },
-    { name: "wood", hardness: 2.0, stack: 64 },
-    { name: "planks", hardness: 2.0, stack: 64 }
+    { name: "dirt", hardness: 0.5, stack: 64, blast: 0.5, flammable: false, tool: "shovel" },
+    { name: "stone", hardness: 1.5, stack: 64, blast: 6, flammable: false, tool: "pickaxe" },
+    { name: "grass", hardness: 0.6, stack: 64, blast: 0.6, flammable: false, tool: "shovel" },
+    { name: "wood", hardness: 2.0, stack: 64, blast: 3, flammable: true, tool: "axe" },
+    { name: "planks", hardness: 2.0, stack: 64, blast: 3, flammable: true, tool: "axe" },
+
+    { name: "sand", hardness: 0.5, stack: 64, blast: 0.5, flammable: false, tool: "shovel" },
+    { name: "gravel", hardness: 0.6, stack: 64, blast: 0.6, flammable: false, tool: "shovel" },
+    { name: "cobblestone", hardness: 2.0, stack: 64, blast: 6, flammable: false, tool: "pickaxe" },
+    { name: "bedrock", hardness: 999, stack: 64, blast: 3600000, flammable: false, tool: "none" },
+    { name: "glass", hardness: 0.3, stack: 64, blast: 0.3, flammable: false, tool: "none" },
+
+    { name: "oak log", hardness: 2.0, stack: 64, blast: 2, flammable: true, tool: "axe" },
+    { name: "iron ore", hardness: 3.0, stack: 64, blast: 3, flammable: false, tool: "pickaxe" },
+    { name: "diamond ore", hardness: 3.0, stack: 64, blast: 3, flammable: false, tool: "pickaxe" },
+    { name: "obsidian", hardness: 50, stack: 64, blast: 1200, flammable: false, tool: "diamond pickaxe" },
+    { name: "leaves", hardness: 0.2, stack: 64, blast: 0.2, flammable: true, tool: "shears" }
 ];
 
-// 🔍 Autocomplete
+// 🔍 AUTOCOMPLETE
 function setupAutocomplete(inputId, listId) {
     const input = document.getElementById(inputId);
     const list = document.getElementById(listId);
@@ -114,7 +131,7 @@ function setupAutocomplete(inputId, listId) {
 
         if (!value) return;
 
-        const matches = items.filter(i => i.name.includes(value));
+        const matches = items.filter(i => i.name.includes(value)).slice(0,10);
 
         matches.forEach(item => {
             const div = document.createElement("div");
@@ -134,18 +151,18 @@ function setupAutocomplete(inputId, listId) {
     });
 }
 
-// 🔍 Find item
+// 🔍 FIND ITEM
 function findItem(name) {
     return items.find(i => i.name === name.toLowerCase());
 }
 
-// ⚔️ Compare
+// ⚔️ COMPARE
 function compare() {
     const item1 = findItem(document.getElementById("item1").value);
     const item2 = findItem(document.getElementById("item2").value);
 
     if (!item1 || !item2) {
-        alert("Pick items from the dropdown");
+        alert("Pick items from dropdown");
         return;
     }
 
@@ -158,14 +175,24 @@ function compare() {
         </tr>
     `;
 
-    ["hardness", "stack"].forEach(attr => {
+    const attributes = ["hardness", "stack", "blast", "flammable", "tool"];
+
+    attributes.forEach(attr => {
         let v1 = item1[attr];
         let v2 = item2[attr];
 
-        let c1="", c2="";
+        // Pretty booleans
+        if (v1 === true) v1 = "Yes";
+        if (v1 === false) v1 = "No";
+        if (v2 === true) v2 = "Yes";
+        if (v2 === false) v2 = "No";
 
-        if (v1 > v2) { c1="better"; c2="worse"; }
-        else if (v2 > v1) { c2="better"; c1="worse"; }
+        let c1 = "", c2 = "";
+
+        if (typeof item1[attr] === "number" && typeof item2[attr] === "number") {
+            if (item1[attr] > item2[attr]) { c1="better"; c2="worse"; }
+            else if (item2[attr] > item1[attr]) { c2="better"; c1="worse"; }
+        }
 
         table.innerHTML += `
             <tr>
@@ -177,9 +204,10 @@ function compare() {
     });
 }
 
-// 🚀 Init
+// 🚀 INIT
 setupAutocomplete("item1", "list1");
 setupAutocomplete("item2", "list2");
+
 </script>
 
 </body>
