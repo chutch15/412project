@@ -31,15 +31,46 @@ td, th { padding:10px; border-bottom:1px solid #444; text-align:center; }
     <table id="table"></table>
 </div>
 
-<script src="data.js"></script>
-
 <script>
+// GLOBAL DATA
+let items = [];
+
+// 🔥 Load CSV directly (GitHub Pages compatible)
+fetch("MC_ Ultimate List - Items.csv")
+.then(res => res.text())
+.then(text => {
+    const rows = text.split("\n").map(r => r.split(","));
+
+    // 🧠 Auto-detect header row (row that contains "Item")
+    const headerIndex = rows.findIndex(r =>
+        r.some(cell => cell.toLowerCase().includes("item"))
+    );
+
+    const headers = rows[headerIndex].map(h => h.trim());
+
+    // 🔹 Clean + convert to objects
+    items = rows.slice(headerIndex + 1)
+        .filter(r => r[0] && r[0].trim() !== "")
+        .map(row => {
+            let obj = {};
+            headers.forEach((h, i) => {
+                obj[h] = (row[i] || "").trim() || "N/A";
+            });
+            return obj;
+        });
+
+    console.log("✅ Loaded items:", items.length);
+});
+
+// 🔍 Find item (fuzzy search)
 function findItem(name) {
     return items.find(i =>
-        i.Item.toLowerCase().includes(name.toLowerCase())
+        i["Item Name"] &&
+        i["Item Name"].toLowerCase().includes(name.toLowerCase())
     );
 }
 
+// ⚔️ Compare function
 function compare() {
     const name1 = document.getElementById("item1").value;
     const name2 = document.getElementById("item2").value;
@@ -55,27 +86,37 @@ function compare() {
     const table = document.getElementById("table");
     table.innerHTML = "";
 
+    // Header row
     table.innerHTML += `
         <tr>
             <th>Attribute</th>
-            <th>${item1.Item}</th>
-            <th>${item2.Item}</th>
+            <th>${item1["Item Name"]}</th>
+            <th>${item2["Item Name"]}</th>
         </tr>
     `;
 
-    const keys = new Set([...Object.keys(item1), ...Object.keys(item2)]);
+    // Combine keys from both items
+    const keys = new Set([
+        ...Object.keys(item1),
+        ...Object.keys(item2)
+    ]);
 
     keys.forEach(key => {
-        let v1 = item1[key] ?? "N/A";
-        let v2 = item2[key] ?? "N/A";
+        if (!key || key === "") return;
+
+        let v1 = item1[key] || "N/A";
+        let v2 = item2[key] || "N/A";
 
         let class1 = "", class2 = "";
 
+        // Numeric comparison
         if (!isNaN(v1) && !isNaN(v2)) {
             if (Number(v1) > Number(v2)) {
-                class1 = "better"; class2 = "worse";
+                class1 = "better";
+                class2 = "worse";
             } else if (Number(v2) > Number(v1)) {
-                class2 = "better"; class1 = "worse";
+                class2 = "better";
+                class1 = "worse";
             }
         }
 
