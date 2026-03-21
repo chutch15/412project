@@ -1,54 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Minecraft Item Comparer</title>
-
-<style>
-body { font-family: Arial; background:#1e1e1e; color:white; }
-.container { max-width:1000px; margin:auto; padding:20px; }
-
-input { padding:10px; margin:5px; width:45%; }
-button { padding:10px; background:#4CAF50; color:white; border:none; }
-
-table { width:100%; margin-top:20px; border-collapse: collapse; }
-td, th { padding:10px; border-bottom:1px solid #444; text-align:center; }
-
-.better { color:#4CAF50; font-weight:bold; }
-.worse { color:#ff4c4c; }
-</style>
-</head>
-
-<body>
-
-<div class="container">
-    <h1>Minecraft Item Comparer</h1>
-
-    <input id="item1" placeholder="Enter item 1">
-    <input id="item2" placeholder="Enter item 2">
-    <button onclick="compare()">Compare</button>
-
-    <table id="table"></table>
-</div>
-
 <script>
-// GLOBAL DATA
 let items = [];
 
-// 🔥 Load CSV directly (GitHub Pages compatible)
-fetch("MC_ Ultimate List - Items.csv")
+// 🔥 Load CSV
+fetch("items.csv") // rename your CSV to this (important)
 .then(res => res.text())
 .then(text => {
     const rows = text.split("\n").map(r => r.split(","));
 
-    // 🧠 Auto-detect header row (row that contains "Item")
     const headerIndex = rows.findIndex(r =>
         r.some(cell => cell.toLowerCase().includes("item"))
     );
 
     const headers = rows[headerIndex].map(h => h.trim());
 
-    // 🔹 Clean + convert to objects
     items = rows.slice(headerIndex + 1)
         .filter(r => r[0] && r[0].trim() !== "")
         .map(row => {
@@ -59,18 +23,72 @@ fetch("MC_ Ultimate List - Items.csv")
             return obj;
         });
 
-    console.log("✅ Loaded items:", items.length);
+    console.log("Loaded:", items.length);
 });
 
-// 🔍 Find item (fuzzy search)
+// 🔍 Normalize names (this fixes "minecraft:dirt" → "dirt")
+function cleanName(name) {
+    return name
+        .toLowerCase()
+        .replace("minecraft:", "")
+        .replace(/_/g, " ")
+        .trim();
+}
+
+// 🔍 Get item name field dynamically
+function getItemName(item) {
+    return item["Item Name"] || item["Item"] || "";
+}
+
+// 🔍 Autocomplete
+function setupAutocomplete(inputId) {
+    const input = document.getElementById(inputId);
+
+    const list = document.createElement("div");
+    list.style.position = "absolute";
+    list.style.background = "#2c2c2c";
+    list.style.width = input.offsetWidth + "px";
+    list.style.maxHeight = "200px";
+    list.style.overflowY = "auto";
+    list.style.zIndex = "999";
+    input.parentNode.appendChild(list);
+
+    input.addEventListener("input", () => {
+        const value = cleanName(input.value);
+        list.innerHTML = "";
+
+        if (!value) return;
+
+        const matches = items
+            .filter(item => cleanName(getItemName(item)).includes(value))
+            .slice(0, 10);
+
+        matches.forEach(item => {
+            const div = document.createElement("div");
+            div.textContent = cleanName(getItemName(item));
+            div.style.padding = "8px";
+            div.style.cursor = "pointer";
+
+            div.onclick = () => {
+                input.value = cleanName(getItemName(item));
+                list.innerHTML = "";
+            };
+
+            list.appendChild(div);
+        });
+    });
+}
+
+// ⚔️ Find item
 function findItem(name) {
-    return items.find(i =>
-        i["Item Name"] &&
-        i["Item Name"].toLowerCase().includes(name.toLowerCase())
+    const cleaned = cleanName(name);
+
+    return items.find(item =>
+        cleanName(getItemName(item)) === cleaned
     );
 }
 
-// ⚔️ Compare function
+// ⚔️ Compare
 function compare() {
     const name1 = document.getElementById("item1").value;
     const name2 = document.getElementById("item2").value;
@@ -79,37 +97,32 @@ function compare() {
     const item2 = findItem(name2);
 
     if (!item1 || !item2) {
-        alert("Item not found");
+        alert("Item not found — use dropdown suggestions");
         return;
     }
 
     const table = document.getElementById("table");
     table.innerHTML = "";
 
-    // Header row
     table.innerHTML += `
         <tr>
             <th>Attribute</th>
-            <th>${item1["Item Name"]}</th>
-            <th>${item2["Item Name"]}</th>
+            <th>${cleanName(getItemName(item1))}</th>
+            <th>${cleanName(getItemName(item2))}</th>
         </tr>
     `;
 
-    // Combine keys from both items
     const keys = new Set([
         ...Object.keys(item1),
         ...Object.keys(item2)
     ]);
 
     keys.forEach(key => {
-        if (!key || key === "") return;
-
         let v1 = item1[key] || "N/A";
         let v2 = item2[key] || "N/A";
 
         let class1 = "", class2 = "";
 
-        // Numeric comparison
         if (!isNaN(v1) && !isNaN(v2)) {
             if (Number(v1) > Number(v2)) {
                 class1 = "better";
@@ -129,7 +142,8 @@ function compare() {
         `;
     });
 }
-</script>
 
-</body>
-</html>
+// 🚀 Init autocomplete
+setupAutocomplete("item1");
+setupAutocomplete("item2");
+</script>
