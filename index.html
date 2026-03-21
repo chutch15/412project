@@ -2,46 +2,39 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Minecraft Item Comparer</title>
+<title>Minecraft Item Comparer (Demo)</title>
 
 <style>
 body {
     font-family: Arial;
     background:#1e1e1e;
     color:white;
-    margin:0;
 }
 
 .container {
-    max-width:1000px;
+    max-width:800px;
     margin:auto;
     padding:20px;
 }
 
-h1 {
-    text-align:center;
-}
-
 .input-group {
     position: relative;
-    display: inline-block;
-    width:48%;
+    width: 48%;
+    display:inline-block;
 }
 
 input {
+    width:100%;
     padding:10px;
     margin:5px;
-    width:100%;
-    box-sizing:border-box;
 }
 
 button {
     padding:10px;
-    background:#4CAF50;
-    color:white;
-    border:none;
     margin:10px 5px;
+    background:#4CAF50;
+    border:none;
+    color:white;
     cursor:pointer;
 }
 
@@ -49,10 +42,8 @@ button {
     position:absolute;
     background:#2c2c2c;
     width:100%;
-    max-height:200px;
+    max-height:150px;
     overflow-y:auto;
-    z-index:999;
-    border-radius:6px;
 }
 
 .autocomplete div {
@@ -76,29 +67,23 @@ td, th {
     text-align:center;
 }
 
-.better {
-    color:#4CAF50;
-    font-weight:bold;
-}
-
-.worse {
-    color:#ff4c4c;
-}
+.better { color:#4CAF50; font-weight:bold; }
+.worse { color:#ff4c4c; }
 </style>
 </head>
 
 <body>
 
 <div class="container">
-    <h1>Minecraft Item Comparer</h1>
+    <h1>Minecraft Item Comparer (Demo)</h1>
 
     <div class="input-group">
-        <input id="item1" placeholder="Search item 1 (e.g. dirt)">
+        <input id="item1" placeholder="Search item 1">
         <div id="list1" class="autocomplete"></div>
     </div>
 
     <div class="input-group">
-        <input id="item2" placeholder="Search item 2 (e.g. stone)">
+        <input id="item2" placeholder="Search item 2">
         <div id="list2" class="autocomplete"></div>
     </div>
 
@@ -109,46 +94,14 @@ td, th {
 </div>
 
 <script>
-let items = [];
-
-// 🔥 Load CSV
-fetch("MC_%20Ultimate%20List%20-%20Items.csv")
-.then(res => res.text())
-.then(text => {
-    const rows = text.split("\n").map(r => r.split(","));
-
-    const headerIndex = rows.findIndex(r =>
-        r.some(cell => cell.toLowerCase().includes("item"))
-    );
-
-    const headers = rows[headerIndex].map(h => h.trim());
-
-    items = rows.slice(headerIndex + 1)
-        .filter(r => r[0] && r[0].trim() !== "")
-        .map(row => {
-            let obj = {};
-            headers.forEach((h, i) => {
-                obj[h] = (row[i] || "").trim() || "N/A";
-            });
-            return obj;
-        });
-
-    console.log("Loaded items:", items.length);
-});
-
-// 🔧 Clean item names
-function cleanName(name) {
-    return name
-        .toLowerCase()
-        .replace("minecraft:", "")
-        .replace(/_/g, " ")
-        .trim();
-}
-
-// 🔧 Get item name field
-function getItemName(item) {
-    return item["Item Name"] || item["Item"] || "";
-}
+// ✅ SIMPLE DATASET
+const items = [
+    { name: "dirt", hardness: 0.5, stack: 64 },
+    { name: "stone", hardness: 1.5, stack: 64 },
+    { name: "grass", hardness: 0.6, stack: 64 },
+    { name: "wood", hardness: 2.0, stack: 64 },
+    { name: "planks", hardness: 2.0, stack: 64 }
+];
 
 // 🔍 Autocomplete
 function setupAutocomplete(inputId, listId) {
@@ -156,21 +109,19 @@ function setupAutocomplete(inputId, listId) {
     const list = document.getElementById(listId);
 
     input.addEventListener("input", () => {
-        const value = cleanName(input.value);
+        const value = input.value.toLowerCase();
         list.innerHTML = "";
 
         if (!value) return;
 
-        const matches = items
-            .filter(item => cleanName(getItemName(item)).includes(value))
-            .slice(0, 10);
+        const matches = items.filter(i => i.name.includes(value));
 
         matches.forEach(item => {
             const div = document.createElement("div");
-            div.textContent = cleanName(getItemName(item));
+            div.textContent = item.name;
 
             div.onclick = () => {
-                input.value = cleanName(getItemName(item));
+                input.value = item.name;
                 list.innerHTML = "";
             };
 
@@ -178,75 +129,49 @@ function setupAutocomplete(inputId, listId) {
         });
     });
 
-    // close dropdown on click outside
     document.addEventListener("click", (e) => {
-        if (!input.contains(e.target)) {
-            list.innerHTML = "";
-        }
+        if (!input.contains(e.target)) list.innerHTML = "";
     });
 }
 
-// ⚔️ Find item
+// 🔍 Find item
 function findItem(name) {
-    const cleaned = cleanName(name);
-
-    return items.find(item =>
-        cleanName(getItemName(item)) === cleaned
-    );
+    return items.find(i => i.name === name.toLowerCase());
 }
 
 // ⚔️ Compare
 function compare() {
-    const name1 = document.getElementById("item1").value;
-    const name2 = document.getElementById("item2").value;
-
-    const item1 = findItem(name1);
-    const item2 = findItem(name2);
+    const item1 = findItem(document.getElementById("item1").value);
+    const item2 = findItem(document.getElementById("item2").value);
 
     if (!item1 || !item2) {
-        alert("Item not found — use dropdown suggestions");
+        alert("Pick items from the dropdown");
         return;
     }
 
     const table = document.getElementById("table");
-    table.innerHTML = "";
-
-    table.innerHTML += `
+    table.innerHTML = `
         <tr>
             <th>Attribute</th>
-            <th>${cleanName(getItemName(item1))}</th>
-            <th>${cleanName(getItemName(item2))}</th>
+            <th>${item1.name}</th>
+            <th>${item2.name}</th>
         </tr>
     `;
 
-    const keys = new Set([
-        ...Object.keys(item1),
-        ...Object.keys(item2)
-    ]);
+    ["hardness", "stack"].forEach(attr => {
+        let v1 = item1[attr];
+        let v2 = item2[attr];
 
-    keys.forEach(key => {
-        if (!key) return;
+        let c1="", c2="";
 
-        let v1 = item1[key] || "N/A";
-        let v2 = item2[key] || "N/A";
-
-        let class1 = "", class2 = "";
-
-        if (!isNaN(v1) && !isNaN(v2)) {
-            if (Number(v1) > Number(v2)) {
-                class1 = "better";
-                class2 = "worse";
-            } else if (Number(v2) > Number(v1)) {
-                class2 = "better";
-                class1 = "worse";
-            }
-        }
+        if (v1 > v2) { c1="better"; c2="worse"; }
+        else if (v2 > v1) { c2="better"; c1="worse"; }
 
         table.innerHTML += `
             <tr>
-                <td>${key}</td>
-                <td class="${class1}">${v1}</td>
-                <td class="${class2}">${v2}</td>
+                <td>${attr}</td>
+                <td class="${c1}">${v1}</td>
+                <td class="${c2}">${v2}</td>
             </tr>
         `;
     });
