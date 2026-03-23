@@ -12,7 +12,7 @@ CREATE DATABASE minecraft;
 \q
 
 # Run schema + data script
-psql -d minecraft -f insert_data.sql
+psql -d minecraft -f data_creation.sql
 
 
 # --- Viewing the data ---
