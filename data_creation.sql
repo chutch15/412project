@@ -2033,6 +2033,54 @@ INSERT INTO public.item VALUES (800, 'Blue Stained Glass', 'blue_stained_glass',
 
 
 --
+-- Name: admin admin_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.admin
+    ADD CONSTRAINT admin_email_key UNIQUE (email);
+
+
+--
+-- Name: admin admin_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.admin
+    ADD CONSTRAINT admin_pkey PRIMARY KEY (admin_id);
+
+
+--
+-- Name: category category_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.category
+    ADD CONSTRAINT category_pkey PRIMARY KEY (category_id);
+
+
+--
+-- Name: item item_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.item
+    ADD CONSTRAINT item_pkey PRIMARY KEY (item_id);
+
+
+--
+-- Name: item item_admin_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.item
+    ADD CONSTRAINT item_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES public.admin(admin_id);
+
+
+--
+-- Name: item item_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.item
+    ADD CONSTRAINT item_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.category(category_id);
+
+
+--
 -- PostgreSQL database dump complete
 --
 
