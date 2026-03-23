@@ -25,3 +25,8 @@ psql -d minecraft
 
 # View sample data
 SELECT * FROM public.item LIMIT 5;
+
+# --- Running the demo ---
+psql -d minecraft -f project_midterm_demo.sql
+
+
