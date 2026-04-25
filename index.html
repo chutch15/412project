@@ -98,113 +98,142 @@ td, th {
 </div>
 
 <script>
-
-// 🔥 DATASET (15 ITEMS, 5 ATTRIBUTES)
-const items = [
-    { name: "dirt", hardness: 0.5, stack: 64, blast: 0.5, flammable: false, tool: "shovel" },
-    { name: "stone", hardness: 1.5, stack: 64, blast: 6, flammable: false, tool: "pickaxe" },
-    { name: "grass", hardness: 0.6, stack: 64, blast: 0.6, flammable: false, tool: "shovel" },
-    { name: "wood", hardness: 2.0, stack: 64, blast: 3, flammable: true, tool: "axe" },
-    { name: "planks", hardness: 2.0, stack: 64, blast: 3, flammable: true, tool: "axe" },
-
-    { name: "sand", hardness: 0.5, stack: 64, blast: 0.5, flammable: false, tool: "shovel" },
-    { name: "gravel", hardness: 0.6, stack: 64, blast: 0.6, flammable: false, tool: "shovel" },
-    { name: "cobblestone", hardness: 2.0, stack: 64, blast: 6, flammable: false, tool: "pickaxe" },
-    { name: "bedrock", hardness: 999, stack: 64, blast: 3600000, flammable: false, tool: "none" },
-    { name: "glass", hardness: 0.3, stack: 64, blast: 0.3, flammable: false, tool: "none" },
-
-    { name: "oak log", hardness: 2.0, stack: 64, blast: 2, flammable: true, tool: "axe" },
-    { name: "iron ore", hardness: 3.0, stack: 64, blast: 3, flammable: false, tool: "pickaxe" },
-    { name: "diamond ore", hardness: 3.0, stack: 64, blast: 3, flammable: false, tool: "pickaxe" },
-    { name: "obsidian", hardness: 50, stack: 64, blast: 1200, flammable: false, tool: "diamond pickaxe" },
-    { name: "leaves", hardness: 0.2, stack: 64, blast: 0.2, flammable: true, tool: "shears" }
+const attributeConfig = [
+    { key: "max_stack", label: "Max Stack", comparable: true },
+    { key: "rarity", label: "Rarity", comparable: false },
+    { key: "mining_level", label: "Mining Level", comparable: true },
+    { key: "attack_damage", label: "Attack Damage", comparable: true },
+    { key: "attack_speed", label: "Attack Speed", comparable: true },
+    { key: "renewable", label: "Renewable", comparable: false },
+    { key: "fire_resistant", label: "Fire Resistant", comparable: false },
+    { key: "blast_resistant", label: "Blast Resistant", comparable: false }
 ];
 
-// 🔍 AUTOCOMPLETE
+function formatValue(value) {
+    if (value === null || value === undefined) return "N/A";
+    if (typeof value === "boolean") return value ? "Yes" : "No";
+    return value;
+}
+
+async function searchItems(query) {
+    const response = await fetch(`/api/items/search?q=${encodeURIComponent(query)}`);
+    if (!response.ok) {
+        throw new Error("Search request failed.");
+    }
+    const data = await response.json();
+    return Array.isArray(data.items) ? data.items : [];
+}
+
 function setupAutocomplete(inputId, listId) {
     const input = document.getElementById(inputId);
     const list = document.getElementById(listId);
+    let debounceTimer = null;
 
     input.addEventListener("input", () => {
-        const value = input.value.toLowerCase();
+        const value = input.value.trim();
         list.innerHTML = "";
 
         if (!value) return;
 
-        const matches = items.filter(i => i.name.includes(value)).slice(0,10);
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(async () => {
+            try {
+                const matches = await searchItems(value);
 
-        matches.forEach(item => {
-            const div = document.createElement("div");
-            div.textContent = item.name;
-
-            div.onclick = () => {
-                input.value = item.name;
+                matches.forEach((name) => {
+                    const div = document.createElement("div");
+                    div.textContent = name;
+                    div.onclick = () => {
+                        input.value = name;
+                        list.innerHTML = "";
+                    };
+                    list.appendChild(div);
+                });
+            } catch (error) {
                 list.innerHTML = "";
-            };
-
-            list.appendChild(div);
-        });
+            }
+        }, 180);
     });
 
-    document.addEventListener("click", (e) => {
-        if (!input.contains(e.target)) list.innerHTML = "";
+    document.addEventListener("click", (event) => {
+        if (!input.contains(event.target) && !list.contains(event.target)) {
+            list.innerHTML = "";
+        }
     });
 }
 
-// 🔍 FIND ITEM
-function findItem(name) {
-    return items.find(i => i.name === name.toLowerCase());
-}
+async function compare() {
+    const item1Name = document.getElementById("item1").value.trim();
+    const item2Name = document.getElementById("item2").value.trim();
 
-// ⚔️ COMPARE
-function compare() {
-    const item1 = findItem(document.getElementById("item1").value);
-    const item2 = findItem(document.getElementById("item2").value);
-
-    if (!item1 || !item2) {
-        alert("Pick items from dropdown");
+    if (!item1Name || !item2Name) {
+        alert("Choose both items first.");
         return;
     }
 
-    const table = document.getElementById("table");
-    table.innerHTML = `
-        <tr>
-            <th>Attribute</th>
-            <th>${item1.name}</th>
-            <th>${item2.name}</th>
-        </tr>
-    `;
+    try {
+        const response = await fetch(
+            `/api/items/compare?item1=${encodeURIComponent(item1Name)}&item2=${encodeURIComponent(item2Name)}`
+        );
 
-    const attributes = ["hardness", "stack", "blast", "flammable", "tool"];
-
-    attributes.forEach(attr => {
-        let v1 = item1[attr];
-        let v2 = item2[attr];
-
-        // Pretty booleans
-        if (v1 === true) v1 = "Yes";
-        if (v1 === false) v1 = "No";
-        if (v2 === true) v2 = "Yes";
-        if (v2 === false) v2 = "No";
-
-        let c1 = "", c2 = "";
-
-        if (typeof item1[attr] === "number" && typeof item2[attr] === "number") {
-            if (item1[attr] > item2[attr]) { c1="better"; c2="worse"; }
-            else if (item2[attr] > item1[attr]) { c2="better"; c1="worse"; }
+        if (!response.ok) {
+            throw new Error("Compare request failed.");
         }
 
-        table.innerHTML += `
+        const data = await response.json();
+        const item1 = data.item1;
+        const item2 = data.item2;
+
+        if (!item1 || !item2) {
+            alert("One or both items were not found in SQL.");
+            return;
+        }
+
+        const table = document.getElementById("table");
+        table.innerHTML = `
             <tr>
-                <td>${attr}</td>
-                <td class="${c1}">${v1}</td>
-                <td class="${c2}">${v2}</td>
+                <th>Attribute</th>
+                <th>${item1.name}</th>
+                <th>${item2.name}</th>
             </tr>
         `;
-    });
+
+        attributeConfig.forEach((attribute) => {
+            const raw1 = item1[attribute.key];
+            const raw2 = item2[attribute.key];
+            const value1 = formatValue(raw1);
+            const value2 = formatValue(raw2);
+
+            let class1 = "";
+            let class2 = "";
+
+            if (
+                attribute.comparable &&
+                typeof raw1 === "number" &&
+                typeof raw2 === "number"
+            ) {
+                if (raw1 > raw2) {
+                    class1 = "better";
+                    class2 = "worse";
+                } else if (raw2 > raw1) {
+                    class2 = "better";
+                    class1 = "worse";
+                }
+            }
+
+            table.innerHTML += `
+                <tr>
+                    <td>${attribute.label}</td>
+                    <td class="${class1}">${value1}</td>
+                    <td class="${class2}">${value2}</td>
+                </tr>
+            `;
+        });
+    } catch (error) {
+        alert("Could not reach SQL API. Start the server with: node server.js");
+    }
 }
 
-// 🚀 INIT
 setupAutocomplete("item1", "list1");
 setupAutocomplete("item2", "list2");
 
