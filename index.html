@@ -92,7 +92,9 @@ td, th {
     </div>
 
     <br>
-    <button onclick="compare()">Compare</button>
+    <button id="compareButton" onclick="compare()" disabled>Compare</button>
+
+    <p id="status">Loading SQL data...</p>
 
     <table id="table"></table>
 </div>
@@ -109,19 +111,117 @@ const attributeConfig = [
     { key: "blast_resistant", label: "Blast Resistant", comparable: false }
 ];
 
+const ITEMS = [];
+const compareButton = document.getElementById("compareButton");
+const statusEl = document.getElementById("status");
+
 function formatValue(value) {
     if (value === null || value === undefined) return "N/A";
     if (typeof value === "boolean") return value ? "Yes" : "No";
     return value;
 }
 
-async function searchItems(query) {
-    const response = await fetch(`/api/items/search?q=${encodeURIComponent(query)}`);
-    if (!response.ok) {
-        throw new Error("Search request failed.");
+function splitSqlValues(valuesText) {
+    const parts = [];
+    let current = "";
+    let inString = false;
+
+    for (let i = 0; i < valuesText.length; i += 1) {
+        const ch = valuesText[i];
+        const next = valuesText[i + 1];
+
+        if (ch === "'") {
+            current += ch;
+            if (inString && next === "'") {
+                current += next;
+                i += 1;
+                continue;
+            }
+            inString = !inString;
+            continue;
+        }
+
+        if (!inString && ch === ",") {
+            parts.push(current.trim());
+            current = "";
+            continue;
+        }
+
+        current += ch;
     }
-    const data = await response.json();
-    return Array.isArray(data.items) ? data.items : [];
+
+    if (current.length > 0) {
+        parts.push(current.trim());
+    }
+
+    return parts;
+}
+
+function parseSqlToken(token) {
+    if (token === "NULL") return null;
+    if (token === "true") return true;
+    if (token === "false") return false;
+    if (token.startsWith("'") && token.endsWith("'")) {
+        return token.slice(1, -1).replace(/''/g, "'");
+    }
+    const numeric = Number(token);
+    return Number.isNaN(numeric) ? token : numeric;
+}
+
+function parseItemInsertLine(line) {
+    const prefix = "INSERT INTO public.item VALUES (";
+    if (!line.startsWith(prefix)) return null;
+
+    const startIndex = line.indexOf("(");
+    const endIndex = line.lastIndexOf(");");
+    if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) return null;
+
+    const valuesText = line.slice(startIndex + 1, endIndex);
+    const tokens = splitSqlValues(valuesText).map(parseSqlToken);
+    if (tokens.length < 32) return null;
+
+    return {
+        item_id: tokens[0],
+        name: tokens[1],
+        rarity: tokens[5],
+        max_stack: tokens[10],
+        renewable: tokens[11],
+        mining_level: tokens[20],
+        attack_damage: tokens[21],
+        attack_speed: tokens[22],
+        fire_resistant: tokens[30],
+        blast_resistant: tokens[31]
+    };
+}
+
+async function loadItemsFromSql() {
+    const response = await fetch("data_creation.sql");
+    if (!response.ok) {
+        throw new Error("Unable to load data_creation.sql");
+    }
+
+    const sqlText = await response.text();
+    const lines = sqlText.split(/\r?\n/);
+
+    lines.forEach((line) => {
+        const item = parseItemInsertLine(line.trim());
+        if (item) ITEMS.push(item);
+    });
+
+    ITEMS.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function searchItems(query) {
+    const lowered = query.toLowerCase();
+    return ITEMS
+        .filter((item) => item.name.toLowerCase().includes(lowered))
+        .slice(0, 10)
+        .map((item) => item.name);
+}
+
+function findItemByName(name) {
+    const lowered = name.toLowerCase();
+    return ITEMS.find((item) => item.name.toLowerCase() === lowered) || null;
 }
 
 function setupAutocomplete(inputId, listId) {
@@ -138,7 +238,7 @@ function setupAutocomplete(inputId, listId) {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(async () => {
             try {
-                const matches = await searchItems(value);
+                const matches = searchItems(value);
 
                 matches.forEach((name) => {
                     const div = document.createElement("div");
@@ -163,6 +263,11 @@ function setupAutocomplete(inputId, listId) {
 }
 
 async function compare() {
+    if (!ITEMS.length) {
+        alert("SQL data is still loading.");
+        return;
+    }
+
     const item1Name = document.getElementById("item1").value.trim();
     const item2Name = document.getElementById("item2").value.trim();
 
@@ -172,20 +277,11 @@ async function compare() {
     }
 
     try {
-        const response = await fetch(
-            `/api/items/compare?item1=${encodeURIComponent(item1Name)}&item2=${encodeURIComponent(item2Name)}`
-        );
-
-        if (!response.ok) {
-            throw new Error("Compare request failed.");
-        }
-
-        const data = await response.json();
-        const item1 = data.item1;
-        const item2 = data.item2;
+        const item1 = findItemByName(item1Name);
+        const item2 = findItemByName(item2Name);
 
         if (!item1 || !item2) {
-            alert("One or both items were not found in SQL.");
+            alert("One or both items were not found in SQL data.");
             return;
         }
 
@@ -230,12 +326,22 @@ async function compare() {
             `;
         });
     } catch (error) {
-        alert("Could not reach SQL API. Start the server with: node server.js");
+        alert("Could not compare items from SQL data.");
     }
 }
 
 setupAutocomplete("item1", "list1");
 setupAutocomplete("item2", "list2");
+
+loadItemsFromSql()
+    .then(() => {
+        compareButton.disabled = false;
+        statusEl.textContent = `Loaded ${ITEMS.length} items from data_creation.sql`;
+    })
+    .catch((error) => {
+        statusEl.textContent = "Failed to load SQL data.";
+        alert(`Failed to load SQL data: ${error.message}`);
+    });
 
 </script>
 
