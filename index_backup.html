@@ -471,6 +471,7 @@ setupAutocomplete("item2", "list2");
 
 loadItemsFromSql()
     .then(() => {
+        console.log("Loaded items:", ITEMS.length);
         compareButton.disabled = false;
         statusEl.textContent = `Loaded ${ITEMS.length} items from data_creation.sql`;
 
