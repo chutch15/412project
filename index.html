@@ -217,7 +217,22 @@ function splitSqlValues(valuesText) {
 
   return parts;
 }
+function getCategory(name) {
+  name = name.toLowerCase();
 
+  if (name.includes("sword")) return "Sword";
+  if (name.includes("pickaxe")) return "Pickaxe";
+  if (name.includes("axe")) return "Axe";
+  if (name.includes("shovel")) return "Shovel";
+  if (name.includes("hoe")) return "Hoe";
+  if (name.includes("helmet") || name.includes("chestplate") || name.includes("leggings") || name.includes("boots")) return "Armor";
+  if (name.includes("block") || name.includes("stone") || name.includes("planks") || name.includes("ore")) return "Block";
+  if (name.includes("apple") || name.includes("bread") || name.includes("meat") || name.includes("food")) return "Food";
+  if (name.includes("potion")) return "Potion";
+  if (name.includes("ingot") || name.includes("gem") || name.includes("material")) return "Material";
+
+  return "Misc";
+}
 function parseSqlToken(token) {
   if (token === "NULL") return null;
   if (token === "true") return true;
@@ -242,22 +257,7 @@ function parseItemInsertLine(line) {
     return null;
   }
 
-function getCategory(name) {
-  name = name.toLowerCase();
 
-  if (name.includes("sword")) return "Sword";
-  if (name.includes("pickaxe")) return "Pickaxe";
-  if (name.includes("axe")) return "Axe";
-  if (name.includes("shovel")) return "Shovel";
-  if (name.includes("hoe")) return "Hoe";
-  if (name.includes("helmet") || name.includes("chestplate") || name.includes("leggings") || name.includes("boots")) return "Armor";
-  if (name.includes("block") || name.includes("stone") || name.includes("planks") || name.includes("ore")) return "Block";
-  if (name.includes("apple") || name.includes("bread") || name.includes("meat") || name.includes("food")) return "Food";
-  if (name.includes("potion")) return "Potion";
-  if (name.includes("ingot") || name.includes("gem") || name.includes("material")) return "Material";
-
-  return "Misc";
-}
 
   const valuesText = line.slice(startIndex + 1, endIndex);
   const tokens = splitSqlValues(valuesText).map(parseSqlToken);
