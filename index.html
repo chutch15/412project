@@ -116,23 +116,7 @@ td, th {
 
 <body>
 
-<section id="item-index">
-  <input id="searchBox" placeholder="filter items...">
 
-  <select id="typeFilter">
-    <option value="">all types</option>
-  </select>
-
-  <select id="rarityFilter">
-    <option value="">all rarities</option>
-  </select>
-
-  <div id="letters"></div>
-
-  <p id="count">Loading items...</p>
-
-  <div id="itemGrid"></div>
-</section>
 
 <div class="container">
   <h1>Minecraft Item Comparer</h1>
@@ -153,12 +137,30 @@ td, th {
 
   <p id="status">Loading SQL data...</p>
 
+
   <table id="table"></table>
 </div>
+<section id="item-index">
+  <input id="searchBox" placeholder="filter items...">
 
+  <select id="typeFilter">
+    <option value="">all types</option>
+  </select>
+
+  <select id="rarityFilter">
+    <option value="">all rarities</option>
+  </select>
+
+  <div id="letters"></div>
+
+  <p id="count">Loading items...</p>
+
+  <div id="itemGrid"></div>
+</section>
 <script>
 let ITEMS = [];
 let selectedLetter = "";
+let LIMIT = 20;
 
 const searchBox = document.getElementById("searchBox");
 const typeFilter = document.getElementById("typeFilter");
@@ -240,6 +242,23 @@ function parseItemInsertLine(line) {
     return null;
   }
 
+function getCategory(name) {
+  name = name.toLowerCase();
+
+  if (name.includes("sword")) return "Sword";
+  if (name.includes("pickaxe")) return "Pickaxe";
+  if (name.includes("axe")) return "Axe";
+  if (name.includes("shovel")) return "Shovel";
+  if (name.includes("hoe")) return "Hoe";
+  if (name.includes("helmet") || name.includes("chestplate") || name.includes("leggings") || name.includes("boots")) return "Armor";
+  if (name.includes("block") || name.includes("stone") || name.includes("planks") || name.includes("ore")) return "Block";
+  if (name.includes("apple") || name.includes("bread") || name.includes("meat") || name.includes("food")) return "Food";
+  if (name.includes("potion")) return "Potion";
+  if (name.includes("ingot") || name.includes("gem") || name.includes("material")) return "Material";
+
+  return "Misc";
+}
+
   const valuesText = line.slice(startIndex + 1, endIndex);
   const tokens = splitSqlValues(valuesText).map(parseSqlToken);
 
@@ -249,7 +268,7 @@ function parseItemInsertLine(line) {
     item_id: tokens[0],
     name: tokens[1],
     rarity: tokens[5],
-    type: tokens[6],
+    type: getCategory(tokens[1]),
     max_stack: tokens[10],
     renewable: tokens[11],
     mining_level: tokens[20],
@@ -287,7 +306,7 @@ function setupItemIndex() {
   typeFilter.innerHTML = '<option value="">all types</option>';
   rarityFilter.innerHTML = '<option value="">all rarities</option>';
 
-  const types = [...new Set(ITEMS.map(item => item.type || "Unknown"))];
+  const types = [...new Set(ITEMS.map(item => item.type))];
   const rarities = [...new Set(ITEMS.map(item => item.rarity || "Unknown"))];
 
   types.forEach(type => {
@@ -319,7 +338,7 @@ function displayItems() {
 
   const filtered = ITEMS.filter(item =>
     item.name.toLowerCase().includes(search) &&
-    (type === "" || (item.type || "Unknown") === type) &&
+    (type === "" || item.type === type) &&
     (rarity === "" || (item.rarity || "Unknown") === rarity) &&
     (selectedLetter === "" || item.name.startsWith(selectedLetter))
   );
@@ -333,7 +352,7 @@ function displayItems() {
       <div class="item-card">
         <h3>${item.name}</h3>
         <span class="tag">${item.rarity || "Unknown"}</span>
-        <span class="tag">${item.type || "Unknown"}</span>
+        <span class="tag">${item.type}</span>
       </div>
     `;
   });
