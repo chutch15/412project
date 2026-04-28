@@ -343,11 +343,11 @@ function displayItems() {
     (selectedLetter === "" || item.name.startsWith(selectedLetter))
   );
 
-  count.textContent = `showing ${filtered.length} items`;
+  count.textContent =  `showing ${Math.min(filtered.length, LIMIT)} of ${filtered.length} items`;
 
   itemGrid.innerHTML = "";
 
-  filtered.forEach(item => {
+  filtered.slice(0, LIMIT).forEach(item =>{
     itemGrid.innerHTML += `
       <div class="item-card">
         <h3>${item.name}</h3>
